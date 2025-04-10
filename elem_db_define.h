@@ -24,12 +24,18 @@ public:
     ~elem_db();
     int elem_db_insert(void* srckey, void* srcvalue);
     int elem_db_get(void* dstkey, void* dst_buf);
-    unsigned short elem_db_versionupdate();
+    int elem_db_del(void* dstkey);
+    int elem_db_revice(void* srckey, void* srcvalue);
+
+//    unsigned short elem_db_versionupdate();
     unsigned short elem_db_getversions();
+    unsigned short elem_db_genversionno_();
+    unsigned short elem_db_versionupdate(unsigned short newno_);
     int elem_db_check();
 
 //    int elem_db_isexist(void* dstkey);
 protected:
+    int var_chilltime;
     int var_keylen;
     int var_valuelen;
 };

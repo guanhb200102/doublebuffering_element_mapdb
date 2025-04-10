@@ -1,6 +1,5 @@
 #include "elem_map_node.h"
 
-
 elem_map_node::elem_map_node(int elemkey_siz, int elemvalue_siz)
 {
     this->var_elemkey_siz=elemkey_siz;
@@ -9,6 +8,7 @@ elem_map_node::elem_map_node(int elemkey_siz, int elemvalue_siz)
     this->Node_version_No_.store(0, std::memory_order_relaxed);
     this->Node_AliveConnections.store(0, std::memory_order_relaxed);
     this->mapsiz=0;
+    pthread_rwlock_init(&(this->rwlock), NULL);
 }
 
 elem_map_node::~elem_map_node()
@@ -19,10 +19,12 @@ elem_map_node::~elem_map_node()
         if(it->second)delete it->second;
         this->node_map.erase(it);
     }
+    pthread_rwlock_destroy(&(this->rwlock));
 }
 
 int elem_map_node::node_revice(void* dstkey, void* srcvalue)
 {
+
     elem_key d_key(dstkey, this->var_elemkey_siz);
     auto it = this->node_map.find(d_key);
     if(it!=this->node_map.end())
@@ -30,12 +32,14 @@ int elem_map_node::node_revice(void* dstkey, void* srcvalue)
         this->node_delete(dstkey);
     }
     this->node_insert(dstkey, srcvalue);
+
     return 1;
 }
 
 int elem_map_node::node_delete(void* dstkey)
 {
     this->node_write_mtx.lock();
+ //   pthread_rwlock_rdlock(&rwlock);
     int result;
     if(dstkey==NULL)
     {
@@ -54,11 +58,10 @@ int elem_map_node::node_delete(void* dstkey)
     {
         result=-1;
     }
+ //   pthread_rwlock_unlock(&rwlock);
     this->node_write_mtx.unlock();
     return result;
 }
-
-
 
 int elem_map_node::node_insert(void* srckey, void* srcvalue)
 {
@@ -68,6 +71,7 @@ int elem_map_node::node_insert(void* srckey, void* srcvalue)
         return 0;
     }
     this->node_write_mtx.lock();
+  //  pthread_rwlock_rdlock(&rwlock);
     int result;
     if(this->node_isexist(srckey)==1)
     {
@@ -90,7 +94,7 @@ int elem_map_node::node_insert(void* srckey, void* srcvalue)
             result=-2;
         }
     }
-
+ //   pthread_rwlock_wrlock(&rwlock);
     this->node_write_mtx.unlock();
     return result;
 }
@@ -102,6 +106,7 @@ int elem_map_node::node_isexist(void* dstkey)
         std::cout << "[ERROR]elem_map_node::node_isexist(void* dstkey)" << std::endl;
         return 0;
     }
+ //   pthread_rwlock_rdlock(&rwlock);
     this->Node_AliveConnections.fetch_add(1, std::memory_order_relaxed);
     int result;
     elem_key d_key(dstkey, this->var_elemkey_siz);
@@ -114,7 +119,9 @@ int elem_map_node::node_isexist(void* dstkey)
     {
         result=1;
     }
+//   pthread_rwlock_unlock(&rwlock);
     this->Node_AliveConnections.fetch_sub(1, std::memory_order_relaxed);
+
     return result;
 }
 
@@ -125,6 +132,7 @@ int elem_map_node::node_get(void* dstkey, void* dstvalue)
         std::cout << "[ERROR]elem_map_node::node_get(void* srckey, void* dstvalue)" << std::endl;
         return 0;
     }
+ //   pthread_rwlock_rdlock(&rwlock);
     int result;
     this->Node_AliveConnections.fetch_add(1, std::memory_order_relaxed);
     elem_key d_key(dstkey, this->var_elemkey_siz);
@@ -146,7 +154,9 @@ int elem_map_node::node_get(void* dstkey, void* dstvalue)
             result=-2;
         }
     }
+ //   pthread_rwlock_unlock(&rwlock);
     this->Node_AliveConnections.fetch_sub(1, std::memory_order_relaxed);
+
     return result;
 }
 
