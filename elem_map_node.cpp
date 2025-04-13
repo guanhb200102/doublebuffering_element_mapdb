@@ -1,5 +1,21 @@
 #include "elem_map_node.h"
 
+elem_map_node::elem_map_node(elem_map_node* other)
+{
+
+    this->var_elemkey_siz=other->var_elemkey_siz;
+    this->var_elemvalue_siz=other->var_elemvalue_siz;
+    other->Node_AliveConnections.fetch_add(1, std::memory_order_relaxed);
+
+    for(auto it=other->node_map.begin(); it != other->node_map.end(); ++it)
+    {
+        this->node_insert(it->first.elem_key_val, it->second->elem_value_val);
+    }
+
+    other->Node_AliveConnections.fetch_sub(1, std::memory_order_relaxed);
+
+}
+
 elem_map_node::elem_map_node(int elemkey_siz, int elemvalue_siz)
 {
     this->var_elemkey_siz=elemkey_siz;
@@ -22,19 +38,6 @@ elem_map_node::~elem_map_node()
     pthread_rwlock_destroy(&(this->rwlock));
 }
 
-int elem_map_node::node_revice(void* dstkey, void* srcvalue)
-{
-
-    elem_key d_key(dstkey, this->var_elemkey_siz);
-    auto it = this->node_map.find(d_key);
-    if(it!=this->node_map.end())
-    {
-        this->node_delete(dstkey);
-    }
-    this->node_insert(dstkey, srcvalue);
-
-    return 1;
-}
 
 int elem_map_node::node_delete(void* dstkey)
 {
@@ -51,7 +54,7 @@ int elem_map_node::node_delete(void* dstkey)
     if(it!=this->node_map.end())
     {
         if(it->second)delete it->second;
-        this->node_map.erase(d_key);
+        this->node_map.erase(it);
         result=1;
     }
     else

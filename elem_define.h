@@ -97,18 +97,6 @@ public:
             delete[] this->elem_value_val;
     }
 
-    int elem_val_revice(void* src_str)
-    {
-        this->val_write_mtx.lock();
-        if( this->elem_value_val==NULL|| src_str==NULL)
-        {
-            std::cout << "[ERROR]elem_val_revice(void* src_str)!" << std::endl;
-            exit(0);
-        }
-        memcpy(this->elem_value_val, src_str, this->var_valsiz);
-        this->val_write_mtx.unlock();
-        return 0;
-    }
 };
 
 #endif

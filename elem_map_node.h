@@ -13,11 +13,12 @@ class elem_map_node
 {
 public:
     elem_map_node(int elemkey_siz, int elemvalue_siz);
+    elem_map_node(elem_map_node* other);
     ~elem_map_node();
     int node_get(void* srckey, void* dstvalue);
     int node_insert(void* srckey, void* srcvalue);
     int node_delete(void* dstkey);
-    int node_revice(void* dstkey, void* srcvalue);
+
     int node_isexist(void* dstkey);
 
     unsigned short elem_map_get_conns();
